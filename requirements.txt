@@ -11,3 +11,4 @@ ragas
 pandas
 numpy
 pysqlite3-binary
+nemoguardrails

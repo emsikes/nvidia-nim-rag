@@ -4,6 +4,7 @@ aiosignal==1.4.0
 altair==5.5.0
 annotated-doc==0.0.3
 annotated-types==0.7.0
+annoy==1.17.3
 anyio==4.11.0
 appdirs==1.4.4
 async-timeout==4.0.3
@@ -29,6 +30,7 @@ docstring_parser==0.17.0
 durationpy==0.10
 exceptiongroup==1.3.0
 fastapi==0.120.4
+fastembed==0.6.0
 filelock==3.20.0
 filetype==1.2.0
 flatbuffers==25.9.23
@@ -46,7 +48,7 @@ httpcore==1.0.9
 httptools==0.7.1
 httpx==0.28.1
 httpx-sse==0.4.3
-huggingface-hub==1.0.1
+huggingface-hub==0.36.0
 humanfriendly==10.0
 identify==2.6.15
 idna==3.11
@@ -72,6 +74,8 @@ langgraph-checkpoint==3.0.0
 langgraph-prebuilt==1.0.2
 langgraph-sdk==0.2.9
 langsmith==0.4.39
+lark==1.3.1
+loguru==0.7.3
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 marshmallow==3.26.1
@@ -82,6 +86,7 @@ multidict==6.7.0
 multiprocess==0.70.16
 mypy_extensions==1.1.0
 narwhals==2.10.1
+nemoguardrails==0.17.0
 nest-asyncio==1.6.0
 networkx==3.4.2
 nodeenv==1.9.1
@@ -100,12 +105,14 @@ ormsgpack==1.11.0
 overrides==7.7.0
 packaging==25.0
 pandas==2.3.3
-pillow==12.0.0
+pillow==11.3.0
 platformdirs==4.5.0
 posthog==5.4.0
 pre_commit==4.3.0
+prompt_toolkit==3.0.52
 propcache==0.4.1
 protobuf==6.33.0
+py_rust_stemmers==0.1.5
 pyarrow==21.0.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
@@ -134,6 +141,7 @@ rsa==4.9.1
 scikit-network==0.33.3
 scipy==1.15.3
 shellingham==1.5.4
+simpleeval==1.0.3
 six==1.17.0
 smmap==5.0.2
 sniffio==1.3.1
@@ -160,6 +168,7 @@ uvloop==0.22.1
 virtualenv==20.35.4
 watchdog==6.0.0
 watchfiles==1.1.1
+wcwidth==0.2.14
 websocket-client==1.9.0
 websockets==15.0.1
 xxhash==3.6.0
