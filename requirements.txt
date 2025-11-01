@@ -1,0 +1,13 @@
+openai
+chromadb
+fastapi
+uvicorn
+streamlit
+python-dotenv
+langchain
+langchain-community
+langchain-nvidia-ai-endpoints
+ragas
+pandas
+numpy
+pysqlite3-binary 
