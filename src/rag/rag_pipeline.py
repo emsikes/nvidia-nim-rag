@@ -1,10 +1,12 @@
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
+# from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_community.llms import Ollama
 from src.rag.document_processor import DocumentProcessor
 from src.rag.vector_store import VectorStore
 from dotenv import load_dotenv
 import os
 
 load_dotenv(override=True)
+LOCAL_MODEL_API_ENDPOINT = os.getenv("LOCAL_LLM")
 
 
 class RAGPipeline:
@@ -14,11 +16,20 @@ class RAGPipeline:
         """
         self.processor = DocumentProcessor(chunk_size=500, chunk_overlap=50)
         self.vector_store = VectorStore(collection_name="rag_docs")
-        self.llm = ChatNVIDIA(
-            model="meta/llama-3.1-8b-instruct",
-            api_key=os.getenv("NVIDIA_API_KEY"),
-            temperature=0.2,
-            max_tokens=512
+
+        # This is for use with NVIDIA hosted model and performaing API calls
+        #
+        # self.llm = ChatNVIDIA(
+        #     model="meta/llama-3.1-8b-instruct",
+        #     api_key=os.getenv("NVIDIA_API_KEY"),
+        #     temperature=0.2,
+        #     max_tokens=512
+        # )
+
+        self.llm = Ollama(
+            model="llama3.1:8b",
+            base_url=LOCAL_MODEL_API_ENDPOINT,
+            temperature=0.2
         )
 
     def load_documents(self, file_path: str):
@@ -49,4 +60,4 @@ class RAGPipeline:
 
         # Generate response
         response = self.llm.invoke(prompt)
-        return response.content
+        return response

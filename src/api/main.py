@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-# from src.rag.guardrails_rag import GuardrailedRAG
-from src.rag.rag_pipeline import RAGPipeline
+from src.rag.nemo_guardrails_rag import NeMoGuardrailedRAG
+# from src.rag.rag_pipeline import RAGPipeline
 from typing import Optional
 import os
 from dotenv import load_dotenv
@@ -12,7 +12,7 @@ load_dotenv(override=True)
 app = FastAPI(title="NVIDIA NIM RAG API")
 
 # Initialize RAG pipeline
-rag = RAGPipeline()
+rag = NeMoGuardrailedRAG()
 
 class DocumentUpload(BaseModel):
     file_path: str

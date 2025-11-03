@@ -1,6 +1,9 @@
 import streamlit as st
 import requests
 import os
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
 
 API_URL = "http://localhost:8000"
 
@@ -14,14 +17,40 @@ st.markdown("Ask questions about your documents using NVIDIA NIM")
 with st.sidebar:
     st.header("🗎 Document Management")
 
-    # File path input
-    file_path = st.text_input(
-        "Document Path",
-        value="data/sample_doc.txt",
-        help="Path to your text document"
+    # Tab for different upload methods
+    upload_method = st.radio(
+        "Upload Method:",
+        ["Browse Files", "Enter Path"],
+        horizontal=True
     )
 
-    if st.button("Load Document"):
+    file_path = None
+
+    if upload_method == "Browse Files":
+        uploaded_file = st.file_uploader(
+            "CHoose a text file",
+            type=['txt'],
+            help="Upload a .txt document"
+        )
+
+        if uploaded_file is not None:
+            # Save uploded file temporarily
+            temp_path = f"data/{uploaded_file.name}"
+            os.makedirs("data", exist_ok=True)
+
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            file_path = temp_path
+            st.info(f"File saved to: {file_path}")
+    else:
+        file_path = st.text_input(
+            "Document Path",
+            value="data/sample_doc.txt",
+            help="Path to your text document"
+        )
+
+    if st.button("Load Document", disabled=(file_path) is None):
         with st.spinner("Loading document..."):
             try:
                 response = requests.post(
@@ -70,7 +99,7 @@ if prompt := st.chat_input("Ask a question about your documents..."):
                     st.markdown(answer)
                     st.session_state.messages.append({"role": "assistant", "content": answer})
                 else:
-                    error_msg = f"Error: {response.txt}"
+                    error_msg = f"Error: {response.text}"
                     st.error(error_msg)
             except Exception as e:
                 error_msg = f"Failed to eonnct to API: {str(e)}"

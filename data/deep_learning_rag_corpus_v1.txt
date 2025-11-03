@@ -1,0 +1,277 @@
+Title: Deep Learning — Compact Corpus for RAG Testing
+Version: 1.0
+Date: 2025-11-02
+Keywords: deep learning, neural networks, transformers, CNN, RNN, attention, optimization, regularization, interpretability, deployment, MLOps, datasets, evaluation
+
+---
+OVERVIEW
+Deep learning is a subfield of machine learning that uses neural networks with many layers to learn representations directly from data. It excels at tasks with large amounts of labeled or unlabeled data: image recognition, speech, natural language understanding, recommendation, and control. Training relies on gradient-based optimization (usually stochastic gradient descent variants) and automatic differentiation.
+
+---
+HISTORICAL SNAPSHOT
+1950s–1980s: Perceptron (Rosenblatt), limitations (Minsky & Papert), backpropagation rediscovered/ popularized (Rumelhart, Hinton, Williams, 1986).
+1990s: Convolutional networks for handwriting (LeCun et al., LeNet-5). Recurrent nets (Elman, Jordan); LSTM (Hochreiter & Schmidhuber, 1997).
+2006–2012: “Deep” pretraining with RBMs/autoencoders; ImageNet breakthrough (Krizhevsky, Sutskever, Hinton, 2012) with GPUs and ReLUs.
+2014–2018: Seq2Seq with attention (Bahdanau 2014), GANs (Goodfellow 2014), Residual Networks (He 2015), Transformer (Vaswani 2017).
+2019–2025: Large-scale pretraining (BERT, GPT-family, ViT), diffusion models for generative media, retrieval-augmented generation (RAG), instruction tuning, tool use, and agentic workflows.
+
+---
+CORE CONCEPTS
+- Tensor: n-dimensional array; shapes and broadcasting matter.
+- Parameters vs. Hyperparameters: Weights/biases learned vs. user-specified (lr, batch size, depth).
+- Activation functions: ReLU, GELU, SiLU (Swish), Tanh, Sigmoid; modern defaults: GELU/SiLU.
+- Initialization: Xavier/Glorot, Kaiming (He); crucial for signal propagation.
+- Normalization: BatchNorm (CNNs), LayerNorm (Transformers), RMSNorm; stabilizes and accelerates training.
+- Regularization: Weight decay, dropout, data augmentation, early stopping, stochastic depth.
+- Optimization: SGD+momentum, Adam/AdamW (decoupled weight decay), learning rate schedules (cosine, warmup), gradient clipping.
+- Loss functions: Cross-entropy, MSE, MAE, focal loss, contrastive losses (InfoNCE), triplet loss.
+- Overfitting vs Underfitting: Bias–variance trade-off; use validation curves.
+
+---
+NEURAL NETWORK ARCHETYPES
+1) Multilayer Perceptron (MLP)
+- Structure: Dense layers with non-linear activations.
+- Use: Tabular data, small embeddings, simple function approximation.
+
+2) Convolutional Neural Network (CNN)
+- Concepts: Local receptive fields, weight sharing, translation equivariance, pooling.
+- Modern blocks: Conv → Norm → Activation; residual connections.
+- Tasks: Vision classification, detection (with heads), segmentation (U-Net), super-resolution.
+
+3) Recurrent Neural Network (RNN)
+- Variants: Vanilla RNN, LSTM, GRU.
+- Strengths: Sequential modeling with hidden state; useful for small/edge scenarios.
+- Limitations: Vanishing/exploding gradients; hard to parallelize; attention eclipsed many use cases.
+
+4) Attention & Transformers
+- Self-attention computes token-to-token dependencies; complexity O(n^2) in sequence length.
+- Key pieces: Multi-head attention, positional encoding (sinusoidal/learned/rotary), feed-forward (MLP) blocks, residual+norm.
+- Scaling laws: Performance improves predictably with data, model size, and compute (within regime).
+- Variants: Encoder-decoder (T5), decoder-only (GPT), encoder-only (BERT); efficient attention (Linformer, Performer), state space models (S4, Mamba) for long context.
+
+5) Diffusion Models (Generative)
+- Learn to denoise from noise-to-data via a schedule; used for image, audio, video synthesis.
+- Components: UNet backbones, noise schedulers (linear, cosine), guidance (classifier-free).
+
+---
+TRAINING PIPELINE (END-TO-END)
+1. Data
+- Collection: Quality > Quantity; watch for leakage.
+- Splits: Train/validation/test (e.g., 80/10/10). Stratify if class imbalance exists.
+- Augmentation: RandAugment/CutMix/MixUp (vision), masking/cropping (text/audio).
+- Dataloading: Shuffle, prefetch, pin memory, deterministic seeds when needed.
+
+2. Model Definition
+- Choose an architecture aligned to task and constraints (latency/footprint).
+- Initialize weights; attach metrics; choose loss and optimizer.
+
+3. Optimization
+- Start with AdamW, cosine schedule, warmup steps (e.g., 3–10% of total steps).
+- Batch size: maximize within memory constraints; accumulate gradients if needed.
+- Mixed precision (FP16/BF16) for speed/memory; monitor numerical stability.
+
+4. Evaluation
+- Track validation loss and task metrics; checkpoint best by metric.
+- Use early stopping patience; record seeds, hyperparams, and data versions.
+
+5. Experiment Management
+- Log runs (params, metrics, artifacts). Keep a model card and data sheet.
+
+---
+MATH BASICS
+- Linear algebra: matrix multiplication, eigendecomposition, SVD for understanding representations.
+- Calculus: gradients via chain rule; backprop uses reverse-mode autodiff.
+- Probability: cross-entropy relates to negative log-likelihood; calibration, entropy and uncertainty.
+- Information theory: KL divergence, mutual information underpin variational and contrastive methods.
+
+---
+EVALUATION METRICS
+Classification: Accuracy, Precision/Recall, F1, AUROC, AUPRC, balanced accuracy.
+Regression: MAE, MSE/RMSE, R^2, MAPE (with caveats).
+Ranking/Recs: NDCG@k, MRR, HitRate, MAP.
+NLP: BLEU, ROUGE, METEOR, BERTScore, exact match, perplexity.
+Vision: Top-1/Top-5, mAP (COCO), IoU/Dice for segmentation.
+Generative: FID/KID (images), CLIPScore; human evals for alignment/quality; toxicity/harm screens.
+
+---
+REGULARIZATION & GENERALIZATION TRICKS
+- Data-centric: improve labels, deduplicate, balance classes, enrich long tail.
+- Model-centric: dropout, stochastic depth, label smoothing, mixup/cutmix, spectral norm.
+- Training-centric: early stopping, SWA (stochastic weight averaging), sharpness-aware minimization (SAM), augment schedules.
+
+---
+INTERPRETABILITY & SAFETY
+- Feature attribution: Integrated Gradients, Grad-CAM, SHAP (approximate).
+- Probing attention: attention does not equal explanation; treat with caution.
+- Safety: red-teaming, adversarial testing, PII removal, dataset documentation, model cards, bias audits.
+- Robustness: adversarial examples (FGSM/PGD), distribution shift tests, OOD detection.
+
+---
+SCALING & EFFICIENCY
+- Parameter-efficient fine-tuning (PEFT): LoRA, QLoRA, adapters.
+- Quantization: INT8/INT4 post-training or QAT; measure accuracy drop vs. latency gains.
+- Pruning: magnitude or structured; distillation: teacher–student transfer.
+- Parallelism: data, tensor, pipeline; ZeRO for optimizer state sharding; checkpoint offloading.
+- Memory tricks: activation checkpointing, gradient checkpointing, flash attention.
+
+---
+RETRIEVAL-AUGMENTED GENERATION (RAG) QUICK PRIMER
+- Idea: augment a generator (LLM) with an external knowledge store to reduce hallucination and update knowledge without retraining.
+- Steps:
+  1) Ingestion: chunking, cleaning, metadata, embeddings, indexing (FAISS, HNSW, IVF-PQ).
+  2) Retrieval: query expansion, hybrid search (sparse + dense), reranking (cross-encoders).
+  3) Prompting: templates, context windows, source citation, instruction style.
+  4) Generation: deterministic temperature for factual tasks; guardrails for style/policy.
+  5) Evaluation: faithfulness (answer supported by sources), answer relevance, context precision/recall.
+- Pitfalls: overly large chunks, poor metadata, embedding drift, lack of deduplication, and missing reranking.
+
+---
+COMMON DATASETS (NON-EXHAUSTIVE)
+Vision: MNIST, CIFAR-10/100, ImageNet, COCO, Cityscapes.
+NLP: GLUE/SuperGLUE, SQuAD, WikiText, Common Crawl (CC), The Pile, MMLU (eval), GSM8K.
+Audio: LibriSpeech, Common Voice.
+RL/Control: OpenAI Gym/Atari, DM Control.
+Recs: MovieLens, RecSys Challenge datasets.
+Multimodal: MSRVTT, LAION-5B (web-scale), COCO Captions.
+
+---
+POPULAR FRAMEWORKS & TOOLS
+- PyTorch (dominant research & production), TensorFlow/Keras (production/edge), JAX (functional & TPU).
+- Training libraries: Lightning, Accelerate, DeepSpeed, Megatron-LM, Ray Train.
+- Serving: ONNX Runtime, TensorRT, TorchServe, Triton Inference Server.
+- Experiment tracking: MLflow, Weights & Biases, Aim.
+- Vector DBs for RAG: FAISS, Milvus, Pinecone, Weaviate, Chroma, Elasticsearch+kNN.
+
+---
+DEPLOYMENT & MLOPS CHECKLIST
+- Package: export to TorchScript/ONNX; capture inference graph and dependencies.
+- Evaluate cost/latency: batch size vs. tail latency; autoscaling; A/B and shadow deploys.
+- Observability: request/response logs, drift detection, SLOs, alerts.
+- Governance: version control for data/model; approval gates; rollbacks; incident runbooks.
+- Edge: quantize/compress; ensure deterministic ops across devices.
+
+---
+TROUBLESHOOTING PLAYBOOK
+Symptoms → Likely Causes → Checks → Fixes
+1) Training loss diverges early
+- Causes: LR too high, bad init, NaNs from mixed precision.
+- Fixes: reduce LR, add warmup, enable gradient clipping, try BF16.
+
+2) Good train loss, bad val loss (overfitting)
+- Fixes: more regularization, more data/augmentation, early stopping, smaller model.
+
+3) Underfitting (both losses high)
+- Fixes: larger model/capacity, better features/architecture, longer training.
+
+4) Model trains but inference is slow
+- Fixes: quantize, prune, distill, fuse ops, use optimized kernels (FlashAttention, TensorRT).
+
+5) RAG answers hallucinate
+- Fixes: hybrid retrieval with BM25 + dense, better chunking (overlap), rerankers, source-grounded prompting, answer post-verification.
+
+---
+SECURITY & PRIVACY NOTES
+- Do not log secrets or PII in training data or prompts.
+- Apply access controls on model endpoints and vector stores.
+- Consider differential privacy for sensitive datasets; monitor for membership inference attacks.
+
+---
+TERMS & CONCEPT GLOSSARY (SELECTED)
+- Autoregressive: next-token prediction conditioned on previous tokens.
+- Beam Search: heuristic decoding keeping top-k sequences; often replaced by nucleus sampling for generation quality.
+- Causal Mask: triangle mask preventing attention to future tokens.
+- Embedding: dense vector representation encoding semantic similarity.
+- Encoder/Decoder: parts of seq2seq; encoder builds representation, decoder generates output.
+- Fine-tuning: adapting a pretrained model to a downstream task; PEFT reduces compute.
+- Gradient Clipping: limits gradient norm to stabilize training.
+- Knowledge Distillation: train a smaller student to mimic a teacher’s outputs.
+- KL Divergence: measure of distribution difference; used in regularization (e.g., RLHF).
+- Logit: pre-softmax score; temperature rescales logits.
+- Masked LM: predicts masked tokens (BERT-style).
+- Normalization: scaling activations to stabilize training (BatchNorm, LayerNorm, RMSNorm).
+- Positional Encoding: method to inject order into tokens for Transformers.
+- Prompt: instruction and context provided to a language model at inference.
+- QLoRA: 4-bit quantization for memory-efficient fine-tuning.
+- Residual Connection: skip connection to ease gradient flow.
+- Sampler (Top-k/Top-p): decoding strategies controlling diversity.
+- Transfer Learning: reuse of knowledge from pretraining for downstream tasks.
+
+---
+CHEAT SHEET: HYPERPARAM DEFAULTS (STARTING POINTS)
+- Optimizer: AdamW (β1=0.9, β2=0.95), weight decay 0.01.
+- LR: 1e-3 for small MLP/CNNs; 2e-4 for transformers; use cosine decay + 5% warmup.
+- Batch size: as large as fits; use gradient accumulation if needed.
+- Dropout: 0.1–0.3 (transformers often 0.1).
+- Label smoothing: 0.1 for classification.
+- Mixed precision: BF16 or FP16 with loss scaling.
+
+---
+TINY EXAMPLES (ILLUSTRATIVE PSEUDOCODE)
+
+[PyTorch-like CNN]
+model = Sequential(
+  Conv2d(3, 64, k=3, p=1), ReLU(),
+  Conv2d(64, 64, k=3, p=1), ReLU(),
+  MaxPool2d(2),
+  Conv2d(64, 128, k=3, p=1), ReLU(),
+  GlobalAvgPool(), Linear(128, num_classes)
+)
+
+[Transformer Block Sketch]
+x = x + MultiHeadSelfAttention(LayerNorm(x))
+x = x + MLP(LayerNorm(x))
+
+[Training Loop Sketch]
+for step, batch in enumerate(loader):
+    loss = criterion(model(batch.x), batch.y)
+    loss.backward()
+    clip_grad_norm_(model.parameters(), 1.0)
+    optimizer.step(); optimizer.zero_grad()
+
+---
+RAG-ORIENTED STRUCTURE NOTES (FOR YOUR PIPELINE)
+- Use short sections with clear headings to improve chunk boundaries.
+- Include synonyms (“Transformer”, “self-attention”, “decoder-only”) to diversify embedding recall.
+- Insert Q&A pairs to test retrieval fidelity.
+- Mix lists, paragraphs, and code blocks to simulate real documentation.
+
+---
+Q&A MINI-SET (FOR RETRIEVAL TESTS)
+Q: What is attention?
+A: A mechanism that weights token interactions to compute context-aware representations; self-attention compares every token with every other token in a sequence.
+
+Q: Why use AdamW over Adam?
+A: AdamW decouples weight decay from gradient-based updates, providing better generalization for many deep networks.
+
+Q: How does RAG reduce hallucination?
+A: By injecting retrieved, source-grounded passages into the prompt, constraining the generator to factual context.
+
+Q: What are common causes of vanishing gradients?
+A: Deep stacks with saturating activations, poor initialization, and no residual connections or normalization.
+
+Q: What is LoRA?
+A: Low-Rank Adaptation: trains small rank-decomposition matrices per layer while freezing the base model, making fine-tuning efficient.
+
+---
+MICRO-BENCHMARK PROMPTS (TRY THESE IN YOUR APP)
+1) “Summarize the differences between CNNs and Transformers for vision.”
+2) “List five techniques to stabilize training of very deep networks.”
+3) “Given a slow inference budget, suggest three acceleration strategies and trade-offs.”
+4) “What steps improve faithfulness in a RAG pipeline?”
+5) “Explain label smoothing and when it helps.”
+
+---
+EDGE CASES FOR RETRIEVAL
+- Synonyms: “self-attention” vs “intra-attention”; “decoder-only” vs “causal LM”.
+- Typos: “transfromer”, “attantion”, “stochastic weigh averaging”.
+- Abbreviations: BN, LN, RMSNorm; PEFT, QAT, OOD.
+- Numeric queries: “What dropout value is suggested?”
+- Multi-hop: “How do residual connections and normalization jointly help?”
+
+---
+SOURCES TO LOOK UP (NOT INCLUDED)
+- “Attention Is All You Need” (2017), “AdamW” (2019), ResNet paper (2015), LSTM (1997).
+- Model cards and data sheets templates from leading ML orgs.
+
+---
+END

@@ -1,14 +1,31 @@
-openai
-chromadb
-fastapi
-uvicorn
-streamlit
-python-dotenv
+# Core RAG Components
 langchain
 langchain-community
 langchain-nvidia-ai-endpoints
-ragas
+
+# Vector Database
+chromadb
+pysqlite3-binary
+
+# API & Web Framework
+fastapi
+uvicorn
+streamlit
+
+# Environment & Configuration
+python-dotenv
+
+# Data Processing
 pandas
 numpy
-pysqlite3-binary
+
+# NeMo Guardrails (for future full integration)
 nemoguardrails
+
+# HuggingFace (for model downloads and NeMo)
+huggingface-hub
+transformers
+
+# Additional utilities
+requests
+pydantic
