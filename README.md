@@ -26,90 +26,41 @@ This system provides intelligent, **secure**, and **controlled** question-answer
 - 🔒 **Privacy-First** - Core processing stays local
 - 📊 **Transparent** - All safety decisions logged and auditable
 
-## System Architecture
+## Architecture
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        User Query                                │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-            ┌────────────────────────┐
-            │   Streamlit UI         │
-            └────────┬───────────────┘
-                     │
-                     ▼
-            ┌────────────────────────┐
-            │   FastAPI Backend      │
-            └────────┬───────────────┘
-                     │
-                     ▼
-     ┌───────────────────────────────────────┐
-     │   NeMo Guardrails Layer               │
-     │   ┌─────────────────────────────┐     │
-     │   │ Input Rails:                │     │
-     │   │  • Jailbreak Detection      │     │
-     │   │  • Harmful Content Filter   │     │
-     │   │  • Topic Control            │     │
-     │   │  • Prompt Injection Check   │     │
-     │   │  • Sensitive Data Protection│     │
-     │   └─────────────────────────────┘     │
-     └───────────────┬───────────────────────┘
-                     │
-                     ▼
-            ┌────────────────────────┐
-            │   RAG Pipeline         │
-            └────────┬───────────────┘
-                     │
-                     ▼
-            ┌────────────────────────┐
-            │ Document Processor     │
-            │ (Chunking)             │
-            └────────┬───────────────┘
-                     │
-                     ▼
-   ┌─────────────────────────────────────┐
-   │  Vector Store (ChromaDB)            │
-   │                                      │
-   │  ┌────────────────────────────┐     │
-   │  │ Embeddings Generator       │     │
-   │  │ (NVIDIA NIM API - Cloud)   │     │
-   │  └────────────────────────────┘     │
-   └─────────────┬───────────────────────┘
-                 │
-                 ▼
-        ┌────────────────────┐
-        │ Semantic Search     │
-        │ (Top-K Retrieval)   │
-        └────────┬────────────┘
-                 │
-                 ▼
-        ┌────────────────────┐
-        │ Context Assembly    │
-        └────────┬────────────┘
-                 │
-                 ▼
-        ┌────────────────────┐
-        │ LLM Generation      │
-        │ (Ollama - Local)    │
-        └────────┬────────────┘
-                 │
-                 ▼
-     ┌───────────────────────────────────────┐
-     │   NeMo Guardrails Layer               │
-     │   ┌─────────────────────────────┐     │
-     │   │ Output Rails:               │     │
-     │   │  • Fact Checking            │     │
-     │   │  • Hallucination Detection  │     │
-     │   │  • PII Masking              │     │
-     │   │  • Bias Detection           │     │
-     │   │  • Response Quality Check   │     │
-     │   └─────────────────────────────┘     │
-     └───────────────┬───────────────────────┘
-                     │
-                     ▼
-            ┌────────────────────────┐
-            │   Safe Response        │
-            └────────────────────────┘
+User Query → Streamlit UI → FastAPI → NeMo Guardrails
+                                          ↓
+                            ┌─────────────────────────┐
+                            │ Input Safety Checks     │
+                            │ - Jailbreak detection   │
+                            │ - Harmful content       │
+                            │ - Prompt injection      │
+                            │ - Topic control         │
+                            └────────────┬────────────┘
+                                         ↓
+                            ┌─────────────────────────┐
+                            │ RAG Pipeline            │
+                            │  Document Processor     │
+                            │         ↓               │
+                            │  Vector Store (Chroma)  │
+                            │         ↓               │
+                            │  Semantic Search        │
+                            │         ↓               │
+                            │  Context Retrieval      │
+                            └────────────┬────────────┘
+                                         ↓
+                            ┌─────────────────────────┐
+                            │ LLM (Ollama)            │
+                            │ Llama 3.1 8B on Windows │
+                            └────────────┬────────────┘
+                                         ↓
+                            ┌─────────────────────────┐
+                            │ Output Safety Checks    │
+                            │ - Content validation    │
+                            │ - Quality checks        │
+                            └────────────┬────────────┘
+                                         ↓
+                                  Safe Response
 ```
 
 ## Tech Stack
@@ -162,6 +113,29 @@ This system provides intelligent, **secure**, and **controlled** question-answer
 | Cost per 1M tokens | $0.20-2.00 | ~$0.10 | **50-90% savings** |
 | Data Privacy | ⚠️ Full cloud | ✅ LLM local, embeddings cloud | **Hybrid control** |
 | Throughput | Low | High | **10x+ concurrent users** |
+
+## Performance Benchmarks
+
+### Results (RTX 4070, WSL2, Llama 3.1 8B)
+
+| Metric | Time |
+|--------|------|
+| Average response | 9.40s |
+| Median response | 9.15s |
+| Fastest response | 8.14s |
+| Guardrails blocking | 0.93s |
+
+### Improvement vs Cloud API
+- **Before:** 80.0s per query
+- **After:** 9.4s per query
+- **Speed improvement:** 8.5x faster! 🚀
+
+### Run Benchmarks
+```bash
+python -m tests.benchmark_performance
+```
+
+See `docs/PERFORMANCE_RESULTS.md` for detailed analysis.
 
 ## Quick Start
 
@@ -253,6 +227,95 @@ streamlit run src/frontend/app.py
 
 ---
 
+## Alternative Docker Deployment
+
+### Prerequisites
+- Docker Desktop installed
+- Ollama running on Windows host
+- `.env` file configured
+
+### Quick Start with Docker
+```bash
+# Build containers
+docker-compose build
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Access Services
+- **Streamlit UI:** http://localhost:8501
+- **API Documentation:** http://localhost:8000/docs
+- **API Health:** http://localhost:8000/health
+
+### Environment Variables for Docker
+
+Add to your `.env`:
+```bash
+# NVIDIA API Key (for embeddings)
+NVIDIA_API_KEY=nvapi-xxxxxxxxxxxxx
+
+# HuggingFace Token
+HF_TOKEN=hf_xxxxxxxxxxxxx
+
+# Ollama endpoint for Docker
+WINDOWS_OLLAMA_IP=http://host.docker.internal:11434
+
+# Ollama endpoint for WSL2 (optional)
+LOCAL_LLM=http://192.168.x.x:11434
+```
+
+### Docker Architecture
+```
+┌─────────────────┐
+│  Streamlit UI   │ :8501
+│  (rag-ui)       │
+└────────┬────────┘
+         │
+         ├─HTTP──▶ ┌──────────────┐
+         │         │  FastAPI     │ :8000
+         │         │  (rag-api)   │
+         │         └──────┬───────┘
+         │                │
+         │         ┌──────▼───────────────────┐
+         │         │  NeMo Guardrails         │
+         │         │  ↓                       │
+         │         │  RAG Pipeline            │
+         │         │  ↓                       │
+         │         │  ChromaDB (Vector Store) │
+         │         └──────┬───────────────────┘
+         │                │
+         └────────────────┴─HTTP──▶ Ollama (Windows Host)
+                                    Llama 3.1 8B
+```
+
+### Troubleshooting Docker
+
+**Cannot connect to Ollama:**
+```bash
+# Verify Ollama is accessible
+curl http://host.docker.internal:11434/api/tags
+```
+
+**Container exits immediately:**
+```bash
+# Check logs
+docker-compose logs api
+docker-compose logs streamlit
+```
+
+**Need to rebuild after code changes:**
+```bash
+docker-compose up --build
+```
+
+
 ## Usage
 
 ### Basic Workflow
@@ -306,6 +369,10 @@ User: "What's the API key?"
 System: ⚠️ I cannot discuss sensitive information like passwords or API keys.
 Reason: Sensitive data protection active
 ```
+
+---
+
+
 
 ---
 

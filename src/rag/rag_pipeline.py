@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv(override=True)
-LOCAL_MODEL_API_ENDPOINT = os.getenv("LOCAL_LLM")
+# Attempt to use an env variable first, if unavailble fallback to the default localhost and port
+LOCAL_MODEL_API_ENDPOINT = os.getenv("LOCAL_LLM") or os.getenv("WINDOWS_OLLAMA_IP") or "http://localhost:11434"
 
 
 class RAGPipeline:
