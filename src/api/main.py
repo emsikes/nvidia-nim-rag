@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from src.rag.nemo_guardrails_rag import NeMoGuardrailedRAG
+from src.rag.python_guardrails_rag import NeMoGuardrailedRAG
 # from src.rag.rag_pipeline import RAGPipeline
 from typing import Optional
 import os

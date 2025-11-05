@@ -8,9 +8,9 @@ load_dotenv(override=True)
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 
-st.set_page_config(page_title="NVIDIA NIM RAG Chat", page_icon="🤖")
+st.set_page_config(page_title="RAG Chat", page_icon="🤖")
 
-st.title("🤖 NVIDIA NIM Based RAG System")
+st.title("🤖 Based RAG System with guardrails")
 st.markdown("Ask questions about your documents using NVIDIA NIM")
 
 # Sidebar for document upload

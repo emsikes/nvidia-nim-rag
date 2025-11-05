@@ -107,3 +107,68 @@ define flow nonsense detection
   user ask nonsense
   bot request clarification
   stop
+
+# Fact-checking to prevent hallucinations
+define bot inform answer not in context
+  "I cannot answer that question based on the previous documents.  Please as about the content in your uploaded files."
+
+define flow check answer relevance
+  bot provide answer
+  if bot response not grounded in context
+    bot inform answer not in context
+    stop
+
+# PII
+define user share Pii
+  "my email is"
+  "my phone number is"
+  "my address is"
+  "my social security"
+  "my credit card"
+  "my passport number"
+
+define bot refuse pii
+  "I cannot process or store personal information like emails, phone numbers, or other sensitive data.  Please rephrase without including personal details."
+
+define flow pii protection
+  user share pii
+  bot refuse pii
+  stop
+
+# Advanced prompt injection patterns
+define user attempt advanced injection
+  "{{{"
+  "}}}"
+  "${{"
+  "%{"
+  "<script>"
+  "</script>"
+  "eval("
+  "exec("
+  "__import__"
+
+define bot refuse advanced injection
+  "I detected unusual formatting in your query. Please ask your question in plain language."
+
+define flow advanced injection detection
+  user attempt advanced injection
+  bot refuse advanced injection
+  stop
+
+# Response quality indicators
+define bot express uncertainty
+  "I'm not completely certain, but based on the documents:"
+  "The documents suggest:"
+  "According to the available information:"
+
+define bot express confidence
+  "Based on the documents:"
+  "The documents clearly state:"
+  "According to the provided context:"
+
+define flow qualify responses
+  bot provide answer
+  if answer has low confidence
+    bot express uncertainty
+  else
+    bot express confidence

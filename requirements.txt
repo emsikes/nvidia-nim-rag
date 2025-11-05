@@ -29,3 +29,5 @@ transformers
 # Additional utilities
 requests
 pydantic
+pypdf
+python-docx

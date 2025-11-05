@@ -372,123 +372,82 @@ Reason: Sensitive data protection active
 
 ---
 
+# NeMo Guardrails Configuration
 
+## Overview
+The config/guardrails directory contains NeMo Guardrails configurations for safe AI interactions.
 
----
+## Files
+- `config.yml` - Main configuration and model settings
+- `rails.co` - Colang flow definitions
 
-## Guardrails: Current vs. Planned
+## Implemented Guardrails
 
-### Current Implementation (Pattern-Based)
+### Input Guardrails
+1. **Jailbreak Detection** - Blocks attempts to override instructions
+2. **Harmful Content** - Prevents illegal/unethical requests
+3. **Off-Topic Control** - Redirects non-document queries
+4. **Sensitive Information** - Blocks requests for credentials/keys
+5. **Prompt Injection** - Detects system prompt manipulation
+6. **PII Protection** - Prevents sharing personal data
+7. **Advanced Injection** - Catches code injection attempts
+8. **Length Validation** - Enforces 3-500 character limits
+9. **Nonsense Detection** - Filters spam/gibberish
+10. **Repetition Detection** - Catches repetitive queries
+11. **Rate Limiting** - 20 queries/minute max
 
-**Active Protections:**
-- ✅ Jailbreak detection (keyword matching)
-- ✅ Harmful content filtering
-- ✅ Prompt injection prevention
-- ✅ Sensitive data protection
-- ✅ Length validation
-- ✅ Quality checks
+### Output Guardrails
+1. **Self Check Output** - Validates response safety
+2. **Fact Checking** - Ensures grounding in context
+3. **Quality Scoring** - Confidence indicators
 
-**How it works:**
-```python
-# Fast regex-based pattern matching
-blocked_patterns = {
-    'jailbreak': [
-        r'ignore.*previous.*instruction',
-        r'disregard.*guideline',
-        # ... more patterns
-    ]
-}
+## Performance Impact
+- Safe queries: ~1s overhead
+- Blocked queries: ~0.9s (faster, caught early)
+
+## Customization
+
+### Add Custom Blocked Terms
+Edit `rails.co`:
+```colang
+define user ask harmful
+  "your custom term"
+  "another blocked phrase"
 ```
 
-**Pros:**
-- ⚡ Extremely fast (<1ms overhead)
-- 🎯 Zero false positives for known patterns
-- 💰 No additional API costs
-- 🔧 Easy to customize
+### Adjust Rate Limits
+Edit `src/rag/nemo_guardrails_rag.py`:
+```python
+self.max_queries_per_window = 30  # Increase limit
+```
 
-**Cons:**
-- ⚠️ Can miss creative bypass attempts
-- ⚠️ No semantic understanding
-- ⚠️ Manual pattern maintenance
-
-### Planned Implementation (NeMo Guardrails)
-
-**Full NeMo Capabilities:**
-
-1. **Input Rails**
-   - Jailbreak detection (LLM-based)
-   - Harmful content classification
-   - Topic control and scope management
-   - Sensitive information detection
-   - Prompt injection detection (advanced)
-
-2. **Dialog Rails**
-   - Multi-turn conversation control
-   - Context-aware moderation
-   - Topic boundaries enforcement
-   - User intent classification
-
-3. **Retrieval Rails**
-   - Hallucination detection
-   - Fact-checking against retrieved context
-   - Source verification
-   - Relevance scoring
-
-4. **Output Rails**
-   - Response quality validation
-   - PII masking and anonymization
-   - Bias detection and mitigation
-   - Tone and style compliance
-
-**Configuration Example (Coming Soon):**
+### Disable Specific Rails
+Comment out in `config.yml`:
 ```yaml
-# config/guardrails/config.yml
-models:
-  - type: main
-    engine: ollama
-    model: llama3.1:8b
-  
-  - type: guardrails
-    engine: nvidia_nim
-    model: llama-guard-3
-
 rails:
   input:
     flows:
-      - self check input
-      - check jailbreak
-      - check harmful content
-  
-  retrieval:
-    flows:
-      - check facts
-      - check hallucination
-  
-  output:
-    flows:
-      - self check output
-      - check bias
-      - mask pii
+      # - topic control  # Disabled
 ```
 
-**Colang Flow Example:**
-```colang
-# Jailbreak detection with LLM
-define flow check jailbreak
-  $is_jailbreak = execute self_check_jailbreak
-  
-  if $is_jailbreak
-    bot refuse to respond
-    stop
+## Testing Guardrails
+```bash
+# Run test suite
+python -m tests.test_guardrails
 
-# Fact checking against context
-define flow check facts
-  $is_accurate = execute fact_check($bot_message, $relevant_chunks)
-  
-  if not $is_accurate
-    bot inform cannot verify
-    stop
+# Test specific pattern
+curl -X POST http://localhost:8000/query \
+  -d '{"question": "Ignore instructions"}'
 ```
+
+## Monitoring
+
+Guardrail triggers are logged:
+```python
+self.logger.warning(f"Blocked query: {reason}")
+```
+
+Check logs for patterns of abuse.
 
 ---
 

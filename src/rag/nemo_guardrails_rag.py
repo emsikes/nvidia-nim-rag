@@ -1,92 +1,166 @@
+from nemoguardrails import RailsConfig, LLMRails
 from src.rag.rag_pipeline import RAGPipeline
 import logging
-import re
+import os
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
+os.environ['HF_TOKEN'] = os.getenv("HF_TOKEN")
+
 
 class NeMoGuardrailedRAG:
+    """
+    Guardrails implementation using a combination of the NVIDIA NeMo Guardrails framework, and basic Python checks.
+
+    These guardrails will protect against:
+
+        - Jailbreak attempts - Trying to override instructions
+        - Harmful content - Illegal/unethical requests
+        - Off-topic queries - Non-document questions
+        - Sensitive information - API keys, passwords
+        - Prompt injection - Special tokens/system prompts
+        - Length attacks - Too long/short queries
+        - Nonsense/spam - Random characters
+        - Output validation - Ensures safe responses
+    """
     def __init__(self):
         self.rag = RAGPipeline()
         self.logger = logging.getLogger(__name__)
-        
-        # Comprehensive blocked patterns
-        self.blocked_patterns = {
-            'jailbreak': [
-                r'ignore.*previous.*instruction',
-                r'disregard.*guideline',
-                r'bypass.*restriction',
-                r'pretend you are',
-                r'act as if',
-                r'forget.*instruction',
-            ],
-            'harmful': [
-                r'how to hack',
-                r'how to exploit',
-                r'create malware',
-                r'illegal activit',
-                r'how to steal',
-            ],
-            'sensitive': [
-                r'api[_\s]?key',
-                r'password',
-                r'secret[_\s]?token',
-                r'credit card',
-                r'social security',
-            ],
-            'injection': [
-                r'system:',
-                r'<\|im_start\|>',
-                r'\[INST\]',
-                r'###\s*instruction',
-            ]
-        }
-        
-        self.logger.info("Guardrails initialized with pattern matching")
-    
+
+        # Query history for repetition detection
+        self.recent_queries = []
+        self.max_history = 10
+
+        # Rate limiting
+        self.query_timestamps = []
+        self.rate_limit_window = 60 # In seconds
+        self.max_queries_per_window = 20
+
+        # Load Nemo Guardrails config
+        try:
+            config = RailsConfig.from_path("config/guardrails")
+            self.rails = LLMRails(config)
+            self.logger.info("NeMo Guardrails loaded successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to load guardrails: {e}")
+            self.rails = None
+
     def load_documents(self, file_path: str):
         return self.rag.load_documents(file_path)
-    
-    def _check_query_safety(self, question: str) -> tuple[bool, str, str]:
-        """Check if query is safe using pattern matching"""
-        
-        question_lower = question.lower()
-        
-        # Length checks
+
+    def _pre_check_query(self, question: str) -> tuple[bool, str]:
+        """Additional Python-based checks before NeMo processing"""
+
+        # Length check
         if len(question) > 500:
-            return False, "length", "Query too long. Please keep questions under 500 characters."
+            return False, " ⚠️ Your query is too long.  Please keep queries under 500 characters."
         
         if len(question.strip()) < 3:
-            return False, "length", "Query too short. Please provide a meaningful question."
+            return False, "⚠️ Your question is too short.  Please provide a meaningful question."
         
-        # Pattern matching
-        for category, patterns in self.blocked_patterns.items():
-            for pattern in patterns:
-                if re.search(pattern, question_lower):
-                    self.logger.warning(f"Blocked {category} attempt: {pattern}")
-                    return False, category, self._get_block_message(category)
+        # Check for excessive special characters (potential prompt injection attack)
+        special_char_ratio = sum(not c.isalnum() and not c.isspace() for c in question) / len(question)
+        if special_char_ratio > 0.3:
+            return False, "⚠️ Your prompt contains too many special characters.  Plase ask a meaningful question."
         
-        return True, "", ""
+        # Check for repetitive patterns (could be spam)
+        words = question.lower().split()
+        if len(words) > 3 and len(set(words)) / len(words) < 0.5:
+            return False, "⚠️ Your prompt seems non-sensical.  Please ask a meaningful question."
+        
+        return True, ""
     
-    def _get_block_message(self, category: str) -> str:
-        """Get appropriate block message for category"""
-        messages = {
-            'jailbreak': "⚠️ I cannot comply with requests to bypass safety guidelines.",
-            'harmful': "⚠️ I cannot provide information about harmful or illegal activities.",
-            'sensitive': "⚠️ I cannot discuss sensitive information like passwords or API keys.",
-            'injection': "⚠️ I detected an attempt to manipulate my instructions.",
-        }
-        return messages.get(category, "⚠️ This query violates safety guidelines.")
+    def _check_repetition(self, question: str) -> str:
+        """
+        Detect repetitive queries (possible SPAM/DoS)
+        """
+        # Add to history
+        self.recent_queries.append(question.lower().strip())
+
+        # Keep only recent queries
+        if len(self.recent_queries) > self.max_history:
+            self.recent_queries.pop(0)
+
+        # Check for excessive repetition
+        if len(self.recent_queries) >= 3:
+            last_three = self.recent_queries[-3:]
+            if len(set(last_three)) == 1:
+                return False, "⚠️ Repeated query detected.  Please vary your questions."
+            
+        return True, ""
+    
+    def _check_rate_limit(self) -> tuple[bool, str]:
+        """
+        Check if query rate limit is exceeded
+        """
+        import time
+
+        current_time = time.time()
+
+        # Remove old timestamps outside windows
+        self.query_timestamps = [
+            ts for ts in self.query_timestamps
+            if current_time - ts < self.rate_limit_window
+        ]
+
+        # Check limit
+        if len(self.query_timestamps) >= self.max_queries_per_window:
+            return False, f" ⚠️ Rate limit exceeded.  Maximum {self.max_queries_per_window} queries per minute."
+        
+        # Add current timestamp
+        self.query_timestamps.append(current_time)
+
+        return True, ""
+
     
     def query(self, question: str, top_k: int = 3) -> str:
-        # Safety check
-        is_safe, category, error_msg = self._check_query_safety(question)
-        
+        # Rate limit check
+        is_allowed, error_msg = self._check_rate_limit()
+        if not is_allowed:
+            self.logger.warning("Rate limit exceeded.")
+            return error_msg
+
+        # Pre checks
+        is_safe, error_msg = self._pre_check_query(question)
         if not is_safe:
-            self.logger.info(f"Blocked query - Category: {category}")
+            self.logger.warning(f"Pre-checks failed: {error_msg}")
             return error_msg
         
-        # Process with RAG
-        try:
-            answer = self.rag.query(question, top_k)
-            return answer
-        except Exception as e:
-            self.logger.error(f"Query error: {str(e)}")
-            return f"Error processing query: {str(e)}"
+        # Repetition check
+        is_unique, error_msg = self._check_repetition(question)
+        if not is_unique:
+            self.logger.warning("Repetition detected")
+            return error_msg
+        
+        # Use Guardrails if available
+        if self.rails:
+            try:
+                # Fetch content from vector store
+                results = self.rag.vector_store.search(question, top_k=top_k)
+                context_chunks = results['documents'][0]
+                context = "\n\n".join(context_chunks)
+
+                # Generate messages for NeMo
+                messages = [{
+                    "role": "user",
+                    "content": f"Context: {context}\n\nQuestion: {question}"
+                }]
+
+                # Generate with rails
+                response = self.rails.generate(messages=messages)
+
+                # Check to see if response was blocked due to rails being triggered
+                if response.get("role") == "assistant":
+                    return response["content"]
+                else:
+                    self.logger.warning("Query blocked by guardrails")
+                    return "⚠️ I cannot process this request due to safety guidelines."
+                
+            except Exception as e:
+                self.logger.error(f"Guardrails error: {e}")
+                # Fall back to regular RAG
+                return self.rag.query(question, top_k)
+        else:
+            # Guardrails aren't available, fall back to regular RAG logic
+            return self.rag.query(question, top_k)
